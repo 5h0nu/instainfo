@@ -90,6 +90,8 @@ def _fetch_via_rapidapi(username: str, api_key: str) -> dict:
                 "profile_pic_url_hd": user_data.get("profile_pic_url_hd") or user_data.get("profile_pic_url"),
                 "is_private": user_data.get("is_private", False),
                 "is_verified": False,
+                "email": user_data.get("business_email") or user_data.get("public_email") or "",
+                "phone": user_data.get("business_phone_number") or user_data.get("contact_phone_number") or "",
                 "id": user_data.get("id"),
                 "source": "rapidapi"
             }
@@ -207,6 +209,8 @@ def _fetch_via_proxy_scraping(username: str, proxy: str = None) -> dict:
                         "profile_pic_url_hd": user_data.get("profile_pic_url_hd") or user_data.get("profile_pic_url"),
                         "is_private": user_data.get("is_private", False),
                         "is_verified": user_data.get("is_verified", False),
+                        "email": user_data.get("business_email") or "",
+                        "phone": user_data.get("business_phone_number") or "",
                         "id": user_data.get("id"),
                         "source": "proxy_scraping"
                     }
