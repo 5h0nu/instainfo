@@ -30,13 +30,12 @@ app = FastAPI(
 )
 
 # Enable CORS (Cross-Origin Resource Sharing)
-# This allows external websites and apps to request your API endpoints
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins, adjust if you want to restrict access
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/", response_class=HTMLResponse)
@@ -59,7 +58,6 @@ async def render_playground():
 async def health_check():
     """
     Simple health check endpoint.
-    Used by the auto-ping background thread to keep the service awake.
     """
     return {
         "status": "healthy",
@@ -73,18 +71,22 @@ async def get_profile(
 ):
     """
     API endpoint to fetch Instagram profile details.
-    Examples: /api/instagram/profile?username=nasa
+    Uses json_dumps_params={"ensure_ascii": True} to escape all emojis/special characters 
+    as safe \\uXXXX sequences. This prevents decoding corruption in older client platforms (like bot.business).
     """
-    # Check if a proxy URL is set via environment variables (e.g. for deployment)
-    # E.g., PROXY_URL = 'http://username:password@proxyhost:port'
     proxy = os.environ.get("PROXY_URL")
-    
-    # Fetch profile details
     result = get_instagram_profile(username, proxy=proxy)
     
     if result.get("success"):
-        return result
+        return JSONResponse(
+            content=result, 
+            status_code=200, 
+            json_dumps_params={"ensure_ascii": True}
+        )
     else:
-        # Return proper HTTP status code from scraper error (defaults to 400 if not specified)
         status_code = result.get("status_code", 400)
-        return JSONResponse(status_code=status_code, content=result)
+        return JSONResponse(
+            content=result, 
+            status_code=status_code, 
+            json_dumps_params={"ensure_ascii": True}
+        )
