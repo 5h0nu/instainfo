@@ -89,6 +89,15 @@ If your deployed app receives a `429 Too Many Requests` status code from Instagr
      *Example:* `http://user:pass@ip1:port,http://user:pass@ip2:port,http://user:pass@ip3:port`
 4. The scraper will automatically shuffle this list and choose a random proxy for each request. If a proxy is rate-limited (429) or fails, it will auto-failover and retry the request using a different proxy from the list (up to 5 attempts).
 
+### 5. Using RapidAPI for 100% Reliable Deploys (Highly Recommended)
+Alternatively, you can route requests through a managed scraping API on RapidAPI (like the **Instagram 120** API) which handles all proxies and blocks automatically:
+1. Subscribe to the **Instagram 120** API on [RapidAPI](https://rapidapi.com/).
+2. Copy your API Key (e.g., `2749778088mshd5ef03891355186p1...`).
+3. In Railway, go to the **Variables** tab.
+4. Add the following environment variable:
+   - **`RAPIDAPI_KEY`**: `your_rapidapi_key_here`
+5. The application will automatically detect this key and use RapidAPI to fetch profiles. If the key is not set (or your RapidAPI monthly quota is exhausted), the application will automatically fall back to your custom rotating proxy configuration.
+
 ---
 
 ## 🛠️ API Reference

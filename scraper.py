@@ -1,6 +1,7 @@
 import requests
 import random
 import logging
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -17,12 +18,9 @@ USER_AGENTS = [
 
 def get_instagram_profile(username: str, proxy: str = None) -> dict:
     """
-    Fetches Instagram profile details using the internal web_profile_info API.
-    Supports comma-separated proxy rotation and auto-failover on rate limits.
-    
-    :param username: The Instagram username to fetch
-    :param proxy: Optional comma-separated proxy URLs
-    :return: Dictionary containing profile information or error details
+    Fetches Instagram profile details.
+    1. If RAPIDAPI_KEY is configured in the environment, it uses the RapidAPI scraper.
+    2. Otherwise, it falls back to the custom local proxy-rotating scraping engine.
     """
     # Clean the username
     username = username.strip().lower()
@@ -36,19 +34,106 @@ def get_instagram_profile(username: str, proxy: str = None) -> dict:
             "status_code": 400
         }
         
+    # Check if RapidAPI is configured
+    rapidapi_key = os.environ.get("RAPIDAPI_KEY")
+    if rapidapi_key:
+        logger.info(f"RapidAPI key detected. Fetching profile for '{username}' via RapidAPI...")
+        result = _fetch_via_rapidapi(username, rapidapi_key)
+        if result.get("success"):
+            return result
+        else:
+            logger.warning(f"RapidAPI request failed: {result.get('error')}. Falling back to proxy scraping...")
+            
+    # Fallback to local scraping with proxies
+    return _fetch_via_proxy_scraping(username, proxy)
+
+
+def _fetch_via_rapidapi(username: str, api_key: str) -> dict:
+    """
+    Queries the RapidAPI Instagram 120 API endpoint.
+    """
+    url = "https://instagram120.p.rapidapi.com/api/instagram/profile"
+    headers = {
+        "Content-Type": "application/json",
+        "x-rapidapi-host": "instagram120.p.rapidapi.com",
+        "x-rapidapi-key": api_key
+    }
+    body = {
+        "username": username
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=body, timeout=15)
+        
+        if response.status_code == 200:
+            data = response.json()
+            user_data = data.get("result")
+            
+            if not user_data:
+                return {
+                    "success": False,
+                    "error": "RapidAPI returned empty results",
+                    "status_code": 404
+                }
+                
+            return {
+                "success": True,
+                "username": user_data.get("username"),
+                "name": user_data.get("full_name") or user_data.get("username"),
+                "followers_count": user_data.get("edge_followed_by", {}).get("count", 0),
+                "following_count": user_data.get("edge_follow", {}).get("count", 0),
+                "posts_count": user_data.get("edge_owner_to_timeline_media", {}).get("count", 0),
+                "bio": user_data.get("biography", ""),
+                "website": "",  # Not supported in this RapidAPI endpoint
+                "profile_pic_url": user_data.get("profile_pic_url"),
+                "profile_pic_url_hd": user_data.get("profile_pic_url_hd") or user_data.get("profile_pic_url"),
+                "is_private": user_data.get("is_private", False),
+                "is_verified": False,  # Not supported in this RapidAPI endpoint
+                "id": user_data.get("id"),
+                "source": "rapidapi"
+            }
+        elif response.status_code == 403 or response.status_code == 401:
+            return {
+                "success": False,
+                "error": "Invalid RapidAPI key or subscription inactive",
+                "status_code": response.status_code
+            }
+        elif response.status_code == 429:
+            return {
+                "success": False,
+                "error": "RapidAPI rate limit or quota exceeded",
+                "status_code": 429
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"RapidAPI returned status code {response.status_code}",
+                "status_code": response.status_code
+            }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"RapidAPI connection error: {str(e)}",
+            "status_code": 502
+        }
+
+
+def _fetch_via_proxy_scraping(username: str, proxy: str = None) -> dict:
+    """
+    Standard scraper querying Instagram's public API with proxies and failover rotation.
+    """
     url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
     
     # Parse proxy list
     proxy_list = []
     if proxy:
-        # Split by comma to support multiple rotating proxies
         proxy_list = [p.strip() for p in proxy.split(",") if p.strip()]
         
     # Set number of attempts based on proxy count
     attempts = len(proxy_list) if proxy_list else 1
-    max_attempts = min(max(attempts, 1), 5)  # Limit max retries to 5 to avoid excessive load
+    max_attempts = min(max(attempts, 1), 5)
     
-    # Shuffle proxy list to randomize order of use
+    # Shuffle proxy list
     available_proxies = list(proxy_list)
     random.shuffle(available_proxies)
     
@@ -60,18 +145,16 @@ def get_instagram_profile(username: str, proxy: str = None) -> dict:
         if available_proxies:
             current_proxy = available_proxies.pop(0)
             
-        # Configure proxies for request
         req_proxies = None
         if current_proxy:
             req_proxies = {
                 "http": current_proxy,
                 "https": current_proxy
             }
-            logger.info(f"Attempt {attempt + 1}/{max_attempts}: Querying using proxy: {current_proxy}")
+            logger.info(f"Attempt {attempt + 1}/{max_attempts}: Querying via proxy: {current_proxy}")
         else:
-            logger.info(f"Attempt {attempt + 1}/{max_attempts}: Querying directly (no proxy)")
+            logger.info(f"Attempt {attempt + 1}/{max_attempts}: Querying directly")
             
-        # Select a random user agent
         user_agent = random.choice(USER_AGENTS)
         headers = {
             "User-Agent": user_agent,
@@ -94,18 +177,16 @@ def get_instagram_profile(username: str, proxy: str = None) -> dict:
                     user_data = data.get('data', {}).get('user')
                     
                     if not user_data:
-                        logger.warning(f"Response success but user data missing for {username}")
                         return {
                             "success": False,
                             "error": "Instagram returned empty profile data",
                             "status_code": 404
                         }
                     
-                    # Extract details
-                    profile_info = {
+                    return {
                         "success": True,
                         "username": user_data.get("username"),
-                        "name": user_data.get("full_name"),
+                        "name": user_data.get("full_name") or user_data.get("username"),
                         "followers_count": user_data.get("edge_followed_by", {}).get("count", 0),
                         "following_count": user_data.get("edge_follow", {}).get("count", 0),
                         "posts_count": user_data.get("edge_owner_to_timeline_media", {}).get("count", 0),
@@ -115,32 +196,22 @@ def get_instagram_profile(username: str, proxy: str = None) -> dict:
                         "profile_pic_url_hd": user_data.get("profile_pic_url_hd"),
                         "is_private": user_data.get("is_private", False),
                         "is_verified": user_data.get("is_verified", False),
-                        "id": user_data.get("id")
+                        "id": user_data.get("id"),
+                        "source": "proxy_scraping"
                     }
-                    
-                    logger.info(f"Successfully retrieved profile for {username} on attempt {attempt + 1}")
-                    return profile_info
-                    
                 except ValueError:
-                    logger.error(f"Failed to parse JSON response for {username}")
                     last_error_status = 500
                     last_error_msg = "Failed to parse API response"
-                    
             elif response.status_code == 404:
-                logger.warning(f"Profile not found: {username}")
                 return {
                     "success": False,
                     "error": "Instagram profile not found",
                     "status_code": 404
                 }
-                
             elif response.status_code == 429:
-                logger.warning(f"Attempt {attempt + 1} rate limited (429) by Instagram for {username}")
                 last_error_status = 429
                 last_error_msg = "Instagram rate limit reached (Too Many Requests)."
-                
             else:
-                logger.warning(f"Attempt {attempt + 1} returned status {response.status_code} for {username}")
                 last_error_status = response.status_code
                 error_msg = f"Instagram returned status code {response.status_code}"
                 try:
@@ -150,18 +221,13 @@ def get_instagram_profile(username: str, proxy: str = None) -> dict:
                 except Exception:
                     pass
                 last_error_msg = error_msg
-                
         except requests.exceptions.Timeout:
-            logger.warning(f"Attempt {attempt + 1} request timeout for {username}")
             last_error_status = 504
             last_error_msg = "Connection to Instagram timed out"
-            
         except requests.exceptions.RequestException as e:
-            logger.warning(f"Attempt {attempt + 1} request exception for {username}: {str(e)}")
             last_error_status = 502
             last_error_msg = f"Network error: {str(e)}"
             
-    # If we run out of proxies/attempts and all failed
     logger.error(f"Failed to fetch profile for {username} after {max_attempts} attempts.")
     return {
         "success": False,
