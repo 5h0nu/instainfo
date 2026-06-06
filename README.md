@@ -80,13 +80,14 @@ By default, hobby servers can go to sleep when they don't receive traffic. To en
    - **`APP_URL`**: Set this to your generated public domain (e.g. `https://your-app.up.railway.app`).
 5. Save the variable. The application will redeploy, and the background keep-alive ping engine will now wake up and request its own `/api/health` endpoint every 10 minutes, preventing the container from sleeping.
 
-### 4. Bypassing Instagram Blocks (Optional)
-If your deployed app receives a `429 Too Many Requests` status code from Instagram, it means the hosting IP range is heavily rate-limited. To solve this, you can configure a proxy:
-1. Obtain a HTTP/HTTPS proxy (e.g., from Webshare, Bright Data, etc.).
+### 4. Bypassing Instagram Blocks & Proxy Rotation (Optional)
+If your deployed app receives a `429 Too Many Requests` status code from Instagram, it means the hosting IP range (or your single proxy IP) is rate-limited. To solve this, you can configure multiple rotating proxies:
+1. Obtain HTTP/HTTPS proxies (e.g., from Webshare, Bright Data, etc.).
 2. In Railway, go to the **Variables** tab.
 3. Add the following environment variable:
-   - **`PROXY_URL`**: `http://username:password@proxyhost:port`
-4. The scraper will automatically route all requests through your proxy.
+   - **`PROXY_URL`**: A comma-separated list of your formatted proxy URLs.
+     *Example:* `http://user:pass@ip1:port,http://user:pass@ip2:port,http://user:pass@ip3:port`
+4. The scraper will automatically shuffle this list and choose a random proxy for each request. If a proxy is rate-limited (429) or fails, it will auto-failover and retry the request using a different proxy from the list (up to 5 attempts).
 
 ---
 
