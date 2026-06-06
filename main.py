@@ -1,6 +1,7 @@
 import os
+import json
 from fastapi import FastAPI, Query
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -71,22 +72,26 @@ async def get_profile(
 ):
     """
     API endpoint to fetch Instagram profile details.
-    Uses json_dumps_params={"ensure_ascii": True} to escape all emojis/special characters 
-    as safe \\uXXXX sequences. This prevents decoding corruption in older client platforms (like bot.business).
+    Uses custom json.dumps with ensure_ascii=True and returns a raw Response.
+    This guarantees 100% compatibility with all FastAPI/Starlette versions and prevents
+    decoding corruption in older client platforms (like bot.business).
     """
     proxy = os.environ.get("PROXY_URL")
     result = get_instagram_profile(username, proxy=proxy)
     
+    # Manually serialize JSON with ASCII escaping enabled
+    json_content = json.dumps(result, ensure_ascii=True)
+    
     if result.get("success"):
-        return JSONResponse(
-            content=result, 
-            status_code=200, 
-            json_dumps_params={"ensure_ascii": True}
+        return Response(
+            content=json_content,
+            status_code=200,
+            media_type="application/json"
         )
     else:
         status_code = result.get("status_code", 400)
-        return JSONResponse(
-            content=result, 
-            status_code=status_code, 
-            json_dumps_params={"ensure_ascii": True}
+        return Response(
+            content=json_content,
+            status_code=status_code,
+            media_type="application/json"
         )
