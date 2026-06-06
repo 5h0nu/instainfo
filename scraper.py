@@ -101,21 +101,24 @@ def _fetch_via_rapidapi(username: str, api_key: str) -> dict:
                     
             return res
         elif response.status_code == 403 or response.status_code == 401:
+            logger.error(f"RapidAPI auth error ({response.status_code}): {response.text}")
             return {
                 "success": False,
                 "error": "Invalid RapidAPI key or subscription inactive",
                 "status_code": response.status_code
             }
         elif response.status_code == 429:
+            logger.error(f"RapidAPI rate limit exceeded: {response.text}")
             return {
                 "success": False,
                 "error": "RapidAPI rate limit or quota exceeded",
                 "status_code": 429
             }
         else:
+            logger.error(f"RapidAPI error status {response.status_code}: {response.text}")
             return {
                 "success": False,
-                "error": f"RapidAPI returned status code {response.status_code}",
+                "error": f"RapidAPI returned status code {response.status_code}: {response.text[:100]}",
                 "status_code": response.status_code
             }
     except Exception as e:
