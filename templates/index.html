@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstaScope API - Instagram Profile Data Scraper & Playground</title>
+    <meta name="description" content="A powerful, lightweight API and dashboard playground to scrape public Instagram profile details including followers, following, bio, posts, and website links.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0a051b;
+            --bg-secondary: #120b2e;
+            --accent-pink: #ff007f;
+            --accent-purple: #7000ff;
+            --accent-blue: #00f0ff;
+            --text-primary: #ffffff;
+            --text-secondary: #a5a1b8;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-hover: rgba(255, 255, 255, 0.06);
+            --font-main: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --neon-shadow: 0 0 20px rgba(112, 0, 255, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        /* Decorative Blur Blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(140px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.55;
+        }
+
+        .blob-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, var(--accent-purple) 0%, rgba(0,0,0,0) 70%);
+            top: -10%;
+            left: -10%;
+            animation: float-blob 20s infinite alternate;
+        }
+
+        .blob-2 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--accent-pink) 0%, rgba(0,0,0,0) 70%);
+            bottom: -10%;
+            right: -10%;
+            animation: float-blob-reverse 25s infinite alternate;
+        }
+
+        .blob-3 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--accent-blue) 0%, rgba(0,0,0,0) 70%);
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.25;
+        }
+
+        @keyframes float-blob {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(60px, 40px) scale(1.1); }
+        }
+
+        @keyframes float-blob-reverse {
+            0% { transform: translate(0, 0) scale(1.1); }
+            100% { transform: translate(-80px, -50px) scale(0.9); }
+        }
+
+        /* Container Layout */
+        .wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        /* Header section */
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .logo-icon {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, var(--accent-pink), var(--accent-purple), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(255, 0, 127, 0.4));
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #ffffff, #d3cce3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 10px auto 0;
+            font-weight: 400;
+        }
+
+        /* Glassmorphic Cards */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 35px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Search Section */
+        .search-container {
+            max-width: 680px;
+            margin: 0 auto;
+            width: 100%;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 15px;
+            position: relative;
+        }
+
+        .input-wrapper {
+            position: relative;
+            flex-grow: 1;
+        }
+
+        .input-wrapper span {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: color 0.3s;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 18px 20px 18px 45px;
+            background: rgba(10, 5, 27, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 1.1rem;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 15px rgba(112, 0, 255, 0.25), inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .search-input:focus + span {
+            color: var(--accent-pink);
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-purple) 100%);
+            color: white;
+            border: none;
+            padding: 0 32px;
+            border-radius: 16px;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(255, 0, 127, 0.3);
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 0, 127, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .search-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* Results & Details Grid */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+
+        .results-grid.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (min-width: 900px) {
+            .results-grid {
+                grid-template-columns: 1.2fr 1.8fr;
+            }
+        }
+
+        /* Profile details left card */
+        .profile-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .profile-avatar-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .avatar-ring {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            padding: 4px;
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(220, 39, 67, 0.2);
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--bg-secondary);
+            background-color: var(--bg-secondary);
+        }
+
+        .verified-badge {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: #0095f6;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid var(--bg-secondary);
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .profile-name {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .profile-username {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .badge-list {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-private {
+            background: rgba(255, 179, 0, 0.15);
+            color: #ffb300;
+            border: 1px solid rgba(255, 179, 0, 0.3);
+        }
+
+        .badge-public {
+            background: rgba(0, 240, 255, 0.12);
+            color: var(--accent-blue);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+
+        .badge-verified {
+            background: rgba(0, 149, 246, 0.15);
+            color: #3897f0;
+            border: 1px solid rgba(0, 149, 246, 0.3);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 100%;
+            border-top: 1px solid var(--glass-border);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 20px 0;
+            margin-bottom: 25px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        /* Bio */
+        .profile-bio {
+            text-align: left;
+            width: 100%;
+            font-size: 0.95rem;
+            color: #d8d6e2;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.02);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.03);
+            white-space: pre-wrap;
+        }
+
+        .profile-website {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .profile-website:hover {
+            background: rgba(0, 240, 255, 0.1);
+            border-color: rgba(0, 240, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* JSON View / Docs Container Right Card */
+        .data-card {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .tabs-header {
+            display: flex;
+            border-bottom: 1px solid var(--glass-border);
+            gap: 20px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 12px 6px;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-blue);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--accent-blue);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+        }
+
+        .tab-content {
+            display: none;
+            flex-grow: 1;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* JSON Viewer */
+        .json-viewer-container {
+            position: relative;
+            background: #060312;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            flex-grow: 1;
+        }
+
+        .json-viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 10px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .json-viewer-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .json-code {
+            padding: 20px;
+            overflow: auto;
+            max-height: 480px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #d1cedc;
+        }
+
+        /* JSON syntax highlighting styles */
+        .json-key { color: var(--accent-pink); }
+        .json-string { color: #50fa7b; }
+        .json-number { color: #ffb86c; }
+        .json-boolean { color: var(--accent-blue); }
+        .json-null { color: #8be9fd; }
+
+        /* API Quick Documentation Section */
+        .docs-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .docs-method {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .method-badge {
+            background: rgba(0, 240, 255, 0.12);
+            color: var(--accent-blue);
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+
+        .method-url {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: #ffffff;
+            background: rgba(255,255,255,0.03);
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--glass-border);
+            word-break: break-all;
+        }
+
+        .code-snippet-container {
+            background: #060312;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-top: 10px;
+        }
+
+        .code-snippet-header {
+            display: flex;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 8px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            gap: 15px;
+        }
+
+        .snippet-tab {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 0;
+            transition: color 0.3s;
+        }
+
+        .snippet-tab.active {
+            color: var(--accent-pink);
+            border-bottom: 1.5px solid var(--accent-pink);
+        }
+
+        .code-snippet-body {
+            padding: 15px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            overflow-x: auto;
+            color: #d1cedc;
+            white-space: pre;
+        }
+
+        /* Loading Overlay & Spinner */
+        .loader-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            padding: 60px 0;
+        }
+
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.05);
+            border-top: 4px solid var(--accent-pink);
+            border-right: 4px solid var(--accent-purple);
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+            box-shadow: 0 0 15px rgba(112, 0, 255, 0.2);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* Error Message Alert */
+        .error-alert {
+            display: none;
+            background: rgba(255, 0, 50, 0.08);
+            border: 1px solid rgba(255, 0, 50, 0.25);
+            border-radius: 16px;
+            padding: 20px;
+            align-items: center;
+            gap: 15px;
+            max-width: 680px;
+            margin: 0 auto;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(255, 0, 50, 0.1);
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .error-icon {
+            font-size: 1.8rem;
+            color: #ff3366;
+        }
+
+        .error-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .error-title {
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 1rem;
+        }
+
+        .error-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* App Footer */
+        footer {
+            text-align: center;
+            margin-top: auto;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            padding: 30px 0;
+            border-top: 1px solid rgba(255,255,255,0.03);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .health-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            color: #10b981;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin: 0 auto;
+            width: fit-content;
+        }
+
+        .health-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Decorative blur backgrounds -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <div class="wrapper">
+        <!-- Header -->
+        <header>
+            <div class="logo-container">
+                <span class="logo-icon">✨</span>
+                <h1>InstaScope API</h1>
+            </div>
+            <p>Fetch details of any public Instagram user instantly. Experience the playground, integrate the JSON API into your projects.</p>
+        </header>
+
+        <!-- Search input box -->
+        <div class="search-container glass-card">
+            <form id="searchForm" class="search-form" onsubmit="handleSearch(event)">
+                <div class="input-wrapper">
+                    <input type="text" id="usernameInput" class="search-input" placeholder="nasa" required autocomplete="off">
+                    <span>@</span>
+                </div>
+                <button type="submit" class="search-btn">
+                    <span>Analyze</span>
+                    <span style="font-size: 1rem">⚡</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Loader -->
+        <div id="loader" class="loader-container">
+            <div class="loader-spinner"></div>
+            <div class="loader-text">Querying Instagram API...</div>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="error-alert">
+            <span class="error-icon">⚠️</span>
+            <div class="error-details">
+                <div class="error-title" id="errorTitle">Request Failed</div>
+                <div class="error-desc" id="errorDesc">An error occurred during parsing.</div>
+            </div>
+        </div>
+
+        <!-- Results Block -->
+        <div id="resultsBlock" class="results-grid">
+            <!-- Left Card: Profile overview -->
+            <div class="glass-card profile-card">
+                <div class="profile-avatar-container">
+                    <div class="avatar-ring">
+                        <img id="profilePic" src="" alt="Profile Picture" class="avatar-img">
+                    </div>
+                    <div id="verifiedBadge" class="verified-badge" style="display: none;">✓</div>
+                </div>
+                
+                <h2 id="profileName" class="profile-name">Name</h2>
+                <div id="profileUsername" class="profile-username">@username</div>
+                
+                <div class="badge-list" id="badgeList">
+                    <span id="privateBadge" class="badge badge-private" style="display: none;">Private</span>
+                    <span id="publicBadge" class="badge badge-public">Public Account</span>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span id="statPosts" class="stat-value">0</span>
+                        <span class="stat-label">Posts</span>
+                    </div>
+                    <div class="stat-item">
+                        <span id="statFollowers" class="stat-value">0</span>
+                        <span class="stat-label">Followers</span>
+                    </div>
+                    <div class="stat-item">
+                        <span id="statFollowing" class="stat-value">0</span>
+                        <span class="stat-label">Following</span>
+                    </div>
+                </div>
+
+                <div id="profileBio" class="profile-bio">No bio available.</div>
+                
+                <a id="profileWebsite" href="#" target="_blank" class="profile-website" style="display: none;">
+                    <span>🔗</span>
+                    <span id="profileWebsiteText">website.com</span>
+                </a>
+            </div>
+
+            <!-- Right Card: API Data & Documentation tabs -->
+            <div class="glass-card data-card">
+                <div class="tabs-header">
+                    <button class="tab-btn active" onclick="switchTab('jsonTab')">JSON Response</button>
+                    <button class="tab-btn" onclick="switchTab('docsTab')">API Integration</button>
+                </div>
+
+                <!-- Tab 1: JSON View -->
+                <div id="jsonTab" class="tab-content active">
+                    <div class="json-viewer-container">
+                        <div class="json-viewer-header">
+                            <span class="json-viewer-title">Response payload</span>
+                            <button class="copy-btn" onclick="copyJSON()">Copy Raw JSON</button>
+                        </div>
+                        <pre class="json-code"><code id="jsonCode">// Search a username to view live API output</code></pre>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Documentation / Snippets -->
+                <div id="docsTab" class="tab-content">
+                    <div class="docs-section">
+                        <h3>Fetch Profile Info</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Send a GET request to query profile details programmatically.</p>
+                        
+                        <div class="docs-method">
+                            <span class="method-badge">GET</span>
+                            <span class="method-url" id="apiUrlPattern">/api/instagram/profile?username={username}</span>
+                        </div>
+
+                        <div class="code-snippet-container">
+                            <div class="code-snippet-header">
+                                <button class="snippet-tab active" onclick="switchSnippet('js')">JavaScript</button>
+                                <button class="snippet-tab" onclick="switchSnippet('py')">Python</button>
+                                <button class="snippet-tab" onclick="switchSnippet('curl')">cURL</button>
+                            </div>
+                            <!-- JS Snippet -->
+                            <div id="snippet-js" class="code-snippet-body" style="display: block;">fetch(`/api/instagram/profile?username=nasa`)
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      console.log(`Followers: ${data.followers_count}`);
+      console.log(`Bio: ${data.bio}`);
+    } else {
+      console.error("Error:", data.error);
+    }
+  });</div>
+                            <!-- Python Snippet -->
+                            <div id="snippet-py" class="code-snippet-body" style="display: none;">import requests
+
+url = "https://your-domain.com/api/instagram/profile"
+params = {"username": "nasa"}
+
+response = requests.get(url, params=params)
+data = response.json()
+
+if data.get("success"):
+    print(f"Followers: {data['followers_count']}")
+    print(f"Bio: {data['bio']}")
+else:
+    print(f"Error: {data.get('error')}")</div>
+                            <!-- cURL Snippet -->
+                            <div id="snippet-curl" class="code-snippet-body" style="display: none;">curl -X GET "https://your-domain.com/api/instagram/profile?username=nasa"</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- App Footer -->
+        <footer>
+            <div class="health-status">
+                <span class="health-dot"></span>
+                <span>Auto-Ping Engine Active</span>
+            </div>
+            <p style="margin-top: 10px;">InstaScope API Dashboard. Built for high-speed, light metadata parsing.</p>
+            <p>Make sure to query responsibly. Avoid extreme rate requests.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Track the current loaded JSON
+        let lastResponseData = null;
+
+        // Auto-detect backend host path to show in docs
+        const currentHost = window.location.origin;
+        document.getElementById('apiUrlPattern').textContent = `${currentHost}/api/instagram/profile?username={username}`;
+        
+        // Update Python & cURL snippets with current host
+        const pySnippet = document.getElementById('snippet-py');
+        pySnippet.textContent = pySnippet.textContent.replace('https://your-domain.com', currentHost);
+        const curlSnippet = document.getElementById('snippet-curl');
+        curlSnippet.textContent = curlSnippet.textContent.replace('https://your-domain.com', currentHost);
+
+        // Switch main cards tab (JSON vs Docs)
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Activate clicked tab button and content
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Switch language snippets in Docs tab
+        function switchSnippet(lang) {
+            document.querySelectorAll('.snippet-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('snippet-js').style.display = lang === 'js' ? 'block' : 'none';
+            document.getElementById('snippet-py').style.display = lang === 'py' ? 'block' : 'none';
+            document.getElementById('snippet-curl').style.display = lang === 'curl' ? 'block' : 'none';
+        }
+
+        // Format numbers like 1420500 -> 1.4M, 12500 -> 12.5K
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+            }
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+            }
+            return num.toString();
+        }
+
+        // Apply Syntax Highlighting to Raw JSON
+        function syntaxHighlightJson(json) {
+            if (typeof json !== 'string') {
+                json = JSON.stringify(json, undefined, 2);
+            }
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, function (match) {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        // Copy JSON string to clipboard
+        function copyJSON() {
+            if (!lastResponseData) return;
+            navigator.clipboard.writeText(JSON.stringify(lastResponseData, null, 2))
+                .then(() => {
+                    const btn = document.querySelector('.copy-btn');
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    btn.style.background = '#10b981';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.style.background = '';
+                    }, 2000);
+                });
+        }
+
+        // Handle Search Request
+        async function handleSearch(event) {
+            event.preventDefault();
+            const usernameInput = document.getElementById('usernameInput');
+            const username = usernameInput.value.trim();
+            if (!username) return;
+
+            // UI Elements
+            const loader = document.getElementById('loader');
+            const errorAlert = document.getElementById('errorAlert');
+            const resultsBlock = document.getElementById('resultsBlock');
+            const jsonCode = document.getElementById('jsonCode');
+
+            // Hide previous alerts and results
+            errorAlert.style.display = 'none';
+            resultsBlock.classList.remove('visible');
+            setTimeout(() => { if (!resultsBlock.classList.contains('visible')) resultsBlock.style.display = 'none'; }, 300);
+            
+            // Show loader
+            loader.style.display = 'flex';
+
+            try {
+                const response = await fetch(`/api/instagram/profile?username=${encodeURIComponent(username)}`);
+                const data = await response.json();
+                
+                loader.style.display = 'none';
+                lastResponseData = data;
+                
+                if (data.success) {
+                    // Populate Profile UI
+                    document.getElementById('profilePic').src = data.profile_pic_url_hd || data.profile_pic_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda168?w=150&auto=format&fit=crop&q=60';
+                    document.getElementById('profileName').textContent = data.name || data.username;
+                    document.getElementById('profileUsername').textContent = `@${data.username}`;
+                    document.getElementById('statPosts').textContent = formatNumber(data.posts_count);
+                    document.getElementById('statFollowers').textContent = formatNumber(data.followers_count);
+                    document.getElementById('statFollowing').textContent = formatNumber(data.following_count);
+                    
+                    // Bio styling
+                    document.getElementById('profileBio').textContent = data.bio || 'No bio text provided.';
+
+                    // Web Link
+                    const websiteEl = document.getElementById('profileWebsite');
+                    if (data.website) {
+                        websiteEl.style.display = 'flex';
+                        websiteEl.href = data.website.startsWith('http') ? data.website : `https://${data.website}`;
+                        document.getElementById('profileWebsiteText').textContent = data.website.replace(/https?:\/\/(www\.)?/, '');
+                    } else {
+                        websiteEl.style.display = 'none';
+                    }
+
+                    // Private Account Badge
+                    document.getElementById('privateBadge').style.display = data.is_private ? 'inline-block' : 'none';
+                    document.getElementById('publicBadge').style.display = data.is_private ? 'none' : 'inline-block';
+
+                    // Verified Badge
+                    document.getElementById('verifiedBadge').style.display = data.is_verified ? 'flex' : 'none';
+
+                    // Syntax highlight JSON output
+                    jsonCode.innerHTML = syntaxHighlightJson(data);
+
+                    // Show Results Block
+                    resultsBlock.style.display = 'grid';
+                    setTimeout(() => resultsBlock.classList.add('visible'), 50);
+
+                } else {
+                    // Show Scraper Error
+                    document.getElementById('errorTitle').textContent = `Scraper Error (Status ${data.status_code || 400})`;
+                    document.getElementById('errorDesc').textContent = data.error || 'Instagram profile not found or server rate limited.';
+                    errorAlert.style.display = 'flex';
+                }
+            } catch (err) {
+                // Show Network Error
+                loader.style.display = 'none';
+                document.getElementById('errorTitle').textContent = 'Network Connection Failed';
+                document.getElementById('errorDesc').textContent = 'Could not reach the local FastAPI server. Make sure the server is running.';
+                errorAlert.style.display = 'flex';
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
