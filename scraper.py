@@ -75,8 +75,9 @@ def _fetch_via_rapidapi(username: str, api_key: str) -> dict:
                     "error": "RapidAPI returned empty results",
                     "status_code": 404
                 }
-                
-            return {
+            
+            # Map values, preferring HD picture for profile_pic_url
+            res = {
                 "success": True,
                 "username": user_data.get("username"),
                 "name": user_data.get("full_name") or user_data.get("username"),
@@ -84,14 +85,21 @@ def _fetch_via_rapidapi(username: str, api_key: str) -> dict:
                 "following_count": user_data.get("edge_follow", {}).get("count", 0),
                 "posts_count": user_data.get("edge_owner_to_timeline_media", {}).get("count", 0),
                 "bio": user_data.get("biography", ""),
-                "website": "",  # Not supported in this RapidAPI endpoint
-                "profile_pic_url": user_data.get("profile_pic_url"),
+                "website": "",  # Not directly supported in this endpoint
+                "profile_pic_url": user_data.get("profile_pic_url_hd") or user_data.get("profile_pic_url"),
                 "profile_pic_url_hd": user_data.get("profile_pic_url_hd") or user_data.get("profile_pic_url"),
                 "is_private": user_data.get("is_private", False),
-                "is_verified": False,  # Not supported in this RapidAPI endpoint
+                "is_verified": False,
                 "id": user_data.get("id"),
                 "source": "rapidapi"
             }
+            
+            # Merge all other keys returned by the API so that "all things" are displayed
+            for k, v in user_data.items():
+                if k not in res:
+                    res[k] = v
+                    
+            return res
         elif response.status_code == 403 or response.status_code == 401:
             return {
                 "success": False,
@@ -183,7 +191,7 @@ def _fetch_via_proxy_scraping(username: str, proxy: str = None) -> dict:
                             "status_code": 404
                         }
                     
-                    return {
+                    res = {
                         "success": True,
                         "username": user_data.get("username"),
                         "name": user_data.get("full_name") or user_data.get("username"),
@@ -192,13 +200,20 @@ def _fetch_via_proxy_scraping(username: str, proxy: str = None) -> dict:
                         "posts_count": user_data.get("edge_owner_to_timeline_media", {}).get("count", 0),
                         "bio": user_data.get("biography", ""),
                         "website": user_data.get("external_url", ""),
-                        "profile_pic_url": user_data.get("profile_pic_url"),
-                        "profile_pic_url_hd": user_data.get("profile_pic_url_hd"),
+                        "profile_pic_url": user_data.get("profile_pic_url_hd") or user_data.get("profile_pic_url"),
+                        "profile_pic_url_hd": user_data.get("profile_pic_url_hd") or user_data.get("profile_pic_url"),
                         "is_private": user_data.get("is_private", False),
                         "is_verified": user_data.get("is_verified", False),
                         "id": user_data.get("id"),
                         "source": "proxy_scraping"
                     }
+                    
+                    # Merge all other keys returned by the API
+                    for k, v in user_data.items():
+                        if k not in res:
+                            res[k] = v
+                            
+                    return res
                 except ValueError:
                     last_error_status = 500
                     last_error_msg = "Failed to parse API response"
